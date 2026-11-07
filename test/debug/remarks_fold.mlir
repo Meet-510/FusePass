@@ -1,4 +1,4 @@
-// RUN: %fusepass-opt %s --split-input-file --verify-diagnostics --pass-pipeline="builtin.module(func.func(fusepass-fold-transpose-matmul{emit-remarks=true}))" -o %t
+// RUN: %fusepass-opt %s --split-input-file --verify-diagnostics --pass-pipeline="builtin.module(func.func(fusepass-fold-transpose-matmul{emit-remarks=true}))" -o /dev/null
 
 func.func @fold_one(%x: tensor<3x2xf32>, %y: tensor<3x4xf32>, %out: tensor<2x4xf32>) -> tensor<2x4xf32> {
   %init = tensor.empty() : tensor<2x3xf32>

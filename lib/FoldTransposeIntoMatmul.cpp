@@ -73,7 +73,8 @@ AffineMap swapResults(AffineMap map) {
 /// linalg.transpose verifies that its result is exactly the swapped source
 /// shape, so each loop sees the same sizes before and after the fold
 /// (test/transpose/transpose_keeps_exact_shape.mlir pins that down). The guard
-/// stays so that a relaxed verifier upstream cannot turn this into a bad rewrite.
+/// stays so that a relaxed verifier upstream cannot turn this into a bad
+/// rewrite.
 bool verifiesAfterFold(linalg::MatmulOp matmul, ArrayRef<Value> newInputs,
                        ArrayAttr newMaps) {
   OwningOpRef<linalg::MatmulOp> candidate(matmul.clone());
@@ -86,7 +87,8 @@ bool verifiesAfterFold(linalg::MatmulOp matmul, ArrayRef<Value> newInputs,
     LLVM_DEBUG(llvm::dbgs() << "  verifier: " << diag.str() << "\n");
     return success();
   });
-  return succeeded(verify(candidate->getOperation(), /*verifyRecursively=*/false));
+  return succeeded(
+      verify(candidate->getOperation(), /*verifyRecursively=*/false));
 }
 
 struct FoldTransposeIntoMatmulPattern : OpRewritePattern<linalg::MatmulOp> {
@@ -122,7 +124,8 @@ struct FoldTransposeIntoMatmulPattern : OpRewritePattern<linalg::MatmulOp> {
     ArrayAttr newMapsAttr = rewriter.getArrayAttr(newMaps);
     if (!verifiesAfterFold(matmul, newInputs, newMapsAttr)) {
       LLVM_DEBUG(llvm::dbgs() << "  rejected: shapes do not allow the fold\n");
-      return rewriter.notifyMatchFailure(matmul, "shapes do not allow the fold");
+      return rewriter.notifyMatchFailure(matmul,
+                                         "shapes do not allow the fold");
     }
 
     unsigned foldedOperands = 0;
@@ -136,7 +139,8 @@ struct FoldTransposeIntoMatmulPattern : OpRewritePattern<linalg::MatmulOp> {
       matmul.setIndexingMapsAttr(newMapsAttr);
     });
     numFolded += foldedOperands;
-    LLVM_DEBUG(llvm::dbgs() << "  folded " << foldedOperands << " operand(s)\n");
+    LLVM_DEBUG(llvm::dbgs()
+               << "  folded " << foldedOperands << " operand(s)\n");
     if (emitRemarks)
       matmul->emitRemark() << "folded " << foldedOperands
                            << " transposed operand(s)";
@@ -166,8 +170,8 @@ struct FoldTransposeIntoMatmulPass
     GreedyRewriteConfig config;
     config.enableFolding(false).enableConstantCSE(false);
     config.setRegionSimplificationLevel(GreedySimplifyRegionLevel::Disabled);
-    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns),
-                                     config)))
+    if (failed(
+            applyPatternsGreedily(getOperation(), std::move(patterns), config)))
       signalPassFailure();
   }
 };

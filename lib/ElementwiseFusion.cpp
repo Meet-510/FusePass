@@ -71,9 +71,8 @@ const char *whyNotJoinable(Operation *producer, Operation *root,
     return "producer has a different result type";
   // Rule: every user of the producer must be in the group. Otherwise erasing
   // the producer would leave the outside user without a value.
-  if (!llvm::all_of(producer->getUsers(), [&](Operation *user) {
-        return group.contains(user);
-      }))
+  if (!llvm::all_of(producer->getUsers(),
+                    [&](Operation *user) { return group.contains(user); }))
     return "producer has a user outside the group";
   return nullptr;
 }
@@ -149,8 +148,8 @@ TypedAttr getSplatConstant(Value value) {
 
 /// Creates the tensor.empty for the result, reading dynamic sizes from a leaf.
 /// Every leaf has the result's type, so any of them has the right sizes.
-Value createInit(PatternRewriter &rewriter, Location loc,
-                 RankedTensorType type, ValueRange inputs) {
+Value createInit(PatternRewriter &rewriter, Location loc, RankedTensorType type,
+                 ValueRange inputs) {
   SmallVector<Value> dynamicSizes;
   for (int64_t dim = 0, rank = type.getRank(); dim < rank; ++dim)
     if (type.isDynamicDim(dim))
@@ -248,8 +247,10 @@ struct FuseElementwiseOps : OpTraitRewritePattern<OpTrait::Elementwise> {
 
     // Not a rejection: this op is accepted when its consumer's group is built.
     if (isAbsorbedByConsumer(op)) {
-      LLVM_DEBUG(llvm::dbgs() << "  not a root, a consumer's group absorbs it\n");
-      return rewriter.notifyMatchFailure(op, "op fuses into a consumer's group");
+      LLVM_DEBUG(llvm::dbgs()
+                 << "  not a root, a consumer's group absorbs it\n");
+      return rewriter.notifyMatchFailure(op,
+                                         "op fuses into a consumer's group");
     }
 
     Group group = collectGroup(op);
@@ -305,8 +306,8 @@ struct ElementwiseFusionPass
     GreedyRewriteConfig config;
     config.enableFolding(false).enableConstantCSE(false);
     config.setRegionSimplificationLevel(GreedySimplifyRegionLevel::Disabled);
-    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns),
-                                     config)))
+    if (failed(
+            applyPatternsGreedily(getOperation(), std::move(patterns), config)))
       signalPassFailure();
   }
 };

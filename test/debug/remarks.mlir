@@ -1,4 +1,4 @@
-// RUN: %fusepass-opt %s --split-input-file --verify-diagnostics --pass-pipeline="builtin.module(func.func(fusepass-elementwise-fusion{emit-remarks=true}))" -o %t
+// RUN: %fusepass-opt %s --split-input-file --verify-diagnostics --pass-pipeline="builtin.module(func.func(fusepass-elementwise-fusion{emit-remarks=true}))" -o /dev/null
 
 // Remarks are the debug channel that also works on release builds of LLVM.
 // --verify-diagnostics fails on any remark not listed here, and on any listed

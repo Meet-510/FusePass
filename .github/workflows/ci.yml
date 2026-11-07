@@ -24,7 +24,7 @@ jobs:
           sudo add-apt-repository -y "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-${LLVM_VERSION} main"
           sudo apt-get update
           sudo apt-get install -y ninja-build zlib1g-dev libzstd-dev libz3-dev \
-            clang-${LLVM_VERSION} lld-${LLVM_VERSION} \
+            clang-${LLVM_VERSION} \
             llvm-${LLVM_VERSION}-dev llvm-${LLVM_VERSION}-tools \
             libmlir-${LLVM_VERSION}-dev mlir-${LLVM_VERSION}-tools
           pip install lit
@@ -35,7 +35,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER=clang-${LLVM_VERSION} \
             -DCMAKE_CXX_COMPILER=clang++-${LLVM_VERSION} \
-            -DLLVM_USE_LINKER=lld-${LLVM_VERSION} \
+            -DFUSEPASS_LIT="$(command -v lit)" \
             -DMLIR_DIR=/usr/lib/llvm-${LLVM_VERSION}/lib/cmake/mlir
 
       - name: Build
