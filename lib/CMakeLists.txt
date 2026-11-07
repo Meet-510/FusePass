@@ -1,5 +1,6 @@
 set(FUSEPASS_PASS_SOURCES
   ElementwiseFusion.cpp
+  FoldTransposeIntoMatmul.cpp
   Passes.cpp
   )
 

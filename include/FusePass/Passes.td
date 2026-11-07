@@ -23,4 +23,14 @@ def ElementwiseFusion : Pass<"fusepass-elementwise-fusion", "func::FuncOp"> {
   ];
 }
 
+def FoldTransposeIntoMatmul
+    : Pass<"fusepass-fold-transpose-matmul", "func::FuncOp"> {
+  let summary = "Fold rank 2 transposes into the indexing maps of linalg.matmul";
+  let dependentDialects = ["linalg::LinalgDialect"];
+  let statistics = [
+    Statistic<"numTransposesFolded", "transposes-folded",
+              "Number of matmul operands that now read past a transpose">
+  ];
+}
+
 #endif // FUSEPASS_PASSES_TD
