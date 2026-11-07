@@ -130,6 +130,11 @@ cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang
 The configure output should then say `assertions=ON`, and `check-fusepass` should run
 all 14 tests. That result has not been seen yet.
 
+**On GitHub instead.** `.github/workflows/assertions.yml` does exactly this on a hosted
+Linux runner, so your own machine stays out of it. Start it by hand from the Actions
+tab, under **Assertions build**. It fails if any test was skipped, and it prints the
+debug output and statistics. It has not been run yet either.
+
 ## C. apt.llvm.org on Ubuntu
 
 These are the steps in `.github/workflows/ci.yml`, for Ubuntu 24.04. The package names

@@ -70,9 +70,8 @@ the project is built around: a value with two users must not fuse.
 check that every user is in the group:
 
 ```diff
--  if (!llvm::all_of(producer->getUsers(), [&](Operation *user) {
--        return group.contains(user);
--      }))
+-  if (!llvm::all_of(producer->getUsers(),
+-                    [&](Operation *user) { return group.contains(user); }))
 -    return "producer has a user outside the group";
 +  (void)group; // MUTATION: the all-uses rule is gone.
 ```
@@ -128,7 +127,7 @@ Reading it from the top:
 3. The crash in `whyNotFusable` is only the symptom. It reads the operand types of
    that op and dereferences the null type.
 
-**The fix.** Restore the four lines. With the rule in place, the same debug text
+**The fix.** Restore the three lines. With the rule in place, the same debug text
 names the rule that kept the shared value out:
 
 ```text

@@ -21,7 +21,7 @@ What has actually been run, and where:
 | Debug text from `LLVM_DEBUG` | Seen through a throwaway copy with the gate removed, see [DEBUGGING.md](docs/DEBUGGING.md) |
 | `--debug-only=fusepass` and `--mlir-pass-statistics` on an assertions build | **Not run.** Windows Smart App Control blocked the LLVM source build on the development machine |
 | Plugin loaded into stock `mlir-opt` on Linux | **Not run yet.** CI has a step for it. The apt `mlir-opt` links `libMLIR.so`, which is what a plugin needs, but that is evidence rather than proof |
-| GitHub Actions workflow | **Not run until the repository is pushed** |
+| GitHub Actions workflows | **Not run until the repository is pushed.** `ci.yml` runs on every push. `assertions.yml` is started by hand and covers the assertions build |
 
 ## Elementwise fusion
 
@@ -196,8 +196,7 @@ shown here.
 
 ## Future work
 
-- Run the assertions build and the CI workflow, which are the gaps listed under
-  Status.
+- Run the two GitHub Actions workflows, which close the gaps listed under Status.
 - An end-to-end test that lowers fused and unfused versions and compares numbers.
   It was skipped because Smart App Control also blocked `mlir-runner.exe` on the
   development machine.

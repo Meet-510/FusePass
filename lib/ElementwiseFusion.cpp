@@ -2,17 +2,17 @@
 //
 // Fuses groups of elementwise ops on ranked tensors into one linalg.generic.
 // The legality rules are listed in docs/DESIGN.md and enforced by
-// whyNotFusable and canJoinGroup below.
+// whyNotFusable and whyNotJoinable below.
 //
 //===----------------------------------------------------------------------===//
 
 #include "FusePass/Passes.h"
 
+#include "mlir/IR/IRMapping.h"
 #include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-#include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SetVector.h"

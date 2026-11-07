@@ -1,0 +1,79 @@
+name: Assertions build
+
+# Builds LLVM and MLIR from source with assertions, which takes a long time, so
+# this only runs when started by hand from the Actions tab. It is the one setup
+# where all 14 tests can run: --debug-only and pass statistics need assertions,
+# and mlir-opt from this build can load the plugin.
+
+on:
+  workflow_dispatch:
+
+env:
+  LLVM_TAG: llvmorg-23.1.5
+
+jobs:
+  assertions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the host toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld ninja-build
+          pip install lit
+
+      - name: Fetch LLVM
+        run: |
+          git clone --depth 1 --branch "$LLVM_TAG" --filter=blob:none --sparse \
+            https://github.com/llvm/llvm-project.git "$HOME/llvm-src"
+          git -C "$HOME/llvm-src" sparse-checkout set llvm mlir cmake third-party libc
+
+      - name: Configure LLVM with assertions
+        run: |
+          cmake -G Ninja -S "$HOME/llvm-src/llvm" -B "$HOME/llvm-build" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+            -DLLVM_ENABLE_LLD=ON \
+            -DLLVM_ENABLE_PROJECTS=mlir \
+            -DLLVM_TARGETS_TO_BUILD=host \
+            -DLLVM_ENABLE_ASSERTIONS=ON \
+            -DLLVM_INSTALL_UTILS=ON \
+            -DLLVM_PARALLEL_LINK_JOBS=1
+
+      - name: Build LLVM and MLIR
+        run: ninja -C "$HOME/llvm-build" mlir-opt FileCheck not count mlir-tblgen llvm-config
+
+      - name: Configure FusePass
+        run: |
+          cmake -G Ninja -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+            -DFUSEPASS_LIT="$(command -v lit)" \
+            -DMLIR_DIR="$HOME/llvm-build/lib/cmake/mlir"
+
+      - name: Run all the tests
+        run: cmake --build build --target check-fusepass
+
+      # With assertions, nothing should have been skipped. Fail if something was,
+      # so a missing feature cannot pass quietly.
+      - name: Check that nothing was skipped
+        run: |
+          lit -v build/test | tee lit.log
+          if grep -q "Unsupported" lit.log; then
+            echo "Some tests were skipped."
+            exit 1
+          fi
+
+      - name: Show the debug output and statistics
+        run: |
+          export PATH="$PWD/build/bin:$HOME/llvm-build/bin:$PATH"
+          fusepass-opt examples/fuse_chain.mlir --fusepass-elementwise-fusion \
+            --debug-only=fusepass --mlir-disable-threading -o /dev/null
+          fusepass-opt examples/fold_transpose.mlir --fusepass-pipeline \
+            --mlir-pass-statistics -o /dev/null
