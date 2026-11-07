@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  # apt.llvm.org ships a rolling 23.x build on this channel.
+  LLVM_VERSION: "23"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install LLVM and MLIR from apt.llvm.org
+        run: |
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+          sudo add-apt-repository -y "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-${LLVM_VERSION} main"
+          sudo apt-get update
+          sudo apt-get install -y ninja-build zlib1g-dev libzstd-dev libz3-dev \
+            clang-${LLVM_VERSION} lld-${LLVM_VERSION} \
+            llvm-${LLVM_VERSION}-dev llvm-${LLVM_VERSION}-tools \
+            libmlir-${LLVM_VERSION}-dev mlir-${LLVM_VERSION}-tools
+          pip install lit
+
+      - name: Configure
+        run: |
+          cmake -G Ninja -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang-${LLVM_VERSION} \
+            -DCMAKE_CXX_COMPILER=clang++-${LLVM_VERSION} \
+            -DLLVM_USE_LINKER=lld-${LLVM_VERSION} \
+            -DMLIR_DIR=/usr/lib/llvm-${LLVM_VERSION}/lib/cmake/mlir
+
+      - name: Build
+        run: cmake --build build
+
+      # lit quietly falls back to the driver if the plugin cannot load, so check
+      # the resume's "run with mlir-opt" entry point explicitly here.
+      - name: Load the plugin into stock mlir-opt
+        run: |
+          /usr/lib/llvm-${LLVM_VERSION}/bin/mlir-opt \
+            --load-pass-plugin="$PWD/build/lib/FusePassPlugin.so" --help \
+            | grep fusepass-elementwise-fusion
+
+      # Debug output tests are skipped here through REQUIRES: asserts because
+      # the apt packages are release builds without assertions.
+      - name: Run the lit suite
+        run: cmake --build build --target check-fusepass

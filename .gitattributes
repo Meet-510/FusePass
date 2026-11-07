@@ -1,0 +1,3 @@
+# Keep LF everywhere so FileCheck tests and scripts behave the same on Linux
+# CI and on Windows checkouts.
+* text=auto eol=lf
