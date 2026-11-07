@@ -187,6 +187,7 @@ With top-down order the debug text shows the check doing its job:
 | `CHECK-SAME ... with "X" equal to "arg0: tensor<?x?xf32>, %arg1"` | `%[[X:.*]]` is greedy and swallowed the next argument, since both have the same type | Capture with `[a-z0-9_]+` |
 | `CHECK-NOT: excluded string found ... %2 = arith.addf %in, %cst_0 : f32` | My `CHECK-NOT: arith.addf` also matched the scalar op inside the body | Check the body with `CHECK-NEXT`, then forbid `arith.` afterwards |
 | `error: expected remark "folded 1 transposed operand(s)" was not produced` | One test file ran both passes, but each pass only emits its own remarks | One file per pass |
+| `debug/remarks.mlir` passes with the build directory on `C:\Users\...` but fails with `build/` inside `D:\Intel projects\FusePass` | Found by following BUILD_AND_TEST.md in a fresh directory. lit does not quote `%t`, so a space in the build path split `-o %t` in two | These tests never read the output, so use `-o /dev/null` |
 | `--mlir-pass-statistics` prints an empty report | See the first section | `stats` lit feature and `emit-remarks` |
 | `'hello-plugin' does not refer to a registered pass or pass pipeline` | On Windows the stock `mlir-opt.exe` links MLIR statically, so a plugin DLL registers into its own copy of the registry | `fusepass-opt` driver; lit probes the plugin before using it |
 | `undefined symbol: vtable for mlir::Pass` linking against `libMLIR.dll` | That DLL does not export the C++ pass API | Same |
