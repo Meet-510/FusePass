@@ -222,17 +222,18 @@ void rewriteGroup(const Group &group, PatternRewriter &rewriter) {
       rewriter.eraseOp(op);
 }
 
-/// Counters that outlive the pattern and feed the pass statistics.
-struct FusionStats {
+/// What the pass wants to hear about its pattern's decisions.
+struct FusionReporting {
   Pass::Statistic &fusedGroups;
   Pass::Statistic &fusedOps;
   Pass::Statistic &rejectedCandidates;
+  bool emitRemarks;
 };
 
 /// Anchors on every elementwise op and rewrites the ones that are group roots.
 struct FuseElementwiseOps : OpTraitRewritePattern<OpTrait::Elementwise> {
-  FuseElementwiseOps(MLIRContext *context, FusionStats stats)
-      : OpTraitRewritePattern(context), stats(stats) {}
+  FuseElementwiseOps(MLIRContext *context, FusionReporting report)
+      : OpTraitRewritePattern(context), report(report) {}
 
   LogicalResult matchAndRewrite(Operation *op,
                                 PatternRewriter &rewriter) const override {
@@ -262,9 +263,11 @@ struct FuseElementwiseOps : OpTraitRewritePattern<OpTrait::Elementwise> {
       for (Operation *member : group)
         llvm::dbgs() << "    " << *member << "\n";
     });
+    if (report.emitRemarks)
+      op->emitRemark() << "fused group of " << group.size() << " ops";
     rewriteGroup(group, rewriter);
-    ++stats.fusedGroups;
-    stats.fusedOps += group.size();
+    ++report.fusedGroups;
+    report.fusedOps += group.size();
     return success();
   }
 
@@ -272,13 +275,16 @@ private:
   LogicalResult reject(Operation *op, const char *reason,
                        PatternRewriter &rewriter) const {
     LLVM_DEBUG(llvm::dbgs() << "  rejected: " << reason << "\n");
-    // The driver revisits ops whose neighbours changed. Count each op once.
-    if (rejected.insert(op).second)
-      ++stats.rejectedCandidates;
+    // The driver revisits ops whose neighbours changed. Report each op once.
+    if (rejected.insert(op).second) {
+      ++report.rejectedCandidates;
+      if (report.emitRemarks)
+        op->emitRemark() << "not fused: " << reason;
+    }
     return rewriter.notifyMatchFailure(op, reason);
   }
 
-  FusionStats stats;
+  FusionReporting report;
   // One pattern instance serves one pass run on one function, and patterns are
   // applied through a const method.
   mutable llvm::DenseSet<Operation *> rejected;
@@ -286,11 +292,13 @@ private:
 
 struct ElementwiseFusionPass
     : impl::ElementwiseFusionBase<ElementwiseFusionPass> {
+  using ElementwiseFusionBase::ElementwiseFusionBase;
+
   void runOnOperation() override {
     RewritePatternSet patterns(&getContext());
     patterns.add<FuseElementwiseOps>(
-        &getContext(),
-        FusionStats{numFusedGroups, numFusedOps, numRejectedCandidates});
+        &getContext(), FusionReporting{numFusedGroups, numFusedOps,
+                                       numRejectedCandidates, emitRemarks});
 
     // This pass only applies its own pattern. Folding would rewrite the input
     // (x * 1.0 becomes x) before fusion could see it.

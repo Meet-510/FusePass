@@ -49,12 +49,42 @@ def plugin_loads(mlir_opt, plugin):
 mlir_opt = find_tool("mlir-opt")
 if plugin_loads(mlir_opt, config.fusepass_plugin):
     config.available_features.add("plugin")
-    opt_command = '"{}" --load-pass-plugin="{}"'.format(mlir_opt, config.fusepass_plugin)
+    opt_args = [mlir_opt, "--load-pass-plugin=" + config.fusepass_plugin]
     lit_config.note("using mlir-opt with the FusePass plugin: " + mlir_opt)
 else:
-    opt_command = '"{}"'.format(find_tool("fusepass-opt"))
+    opt_args = [find_tool("fusepass-opt")]
     lit_config.note("plugin unavailable, using the fusepass-opt driver")
-config.substitutions.append(("%fusepass-opt", opt_command.replace("\\", "/")))
+config.substitutions.append(
+    ("%fusepass-opt", " ".join('"{}"'.format(a) for a in opt_args).replace("\\", "/"))
+)
+
+
+def statistics_work():
+    """Returns true when --mlir-pass-statistics reports real values.
+
+    MLIR only records them under LLVM_ENABLE_STATS, which release builds of LLVM
+    turn off unless they set LLVM_FORCE_ENABLE_STATS. Asking the tool covers
+    both cases.
+    """
+    report = subprocess.run(
+        opt_args
+        + [
+            os.path.join(config.fusepass_src_root, "examples", "fuse_chain.mlir"),
+            "--fusepass-elementwise-fusion",
+            "--mlir-pass-statistics",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        universal_newlines=True,
+        env=dict(os.environ, PATH=config.environment["PATH"]),
+    )
+    return "fused-groups" in report.stdout
+
+
+stats_recorded = statistics_work()
+if stats_recorded:
+    config.available_features.add("stats")
+lit_config.note("pass statistics recorded: " + str(stats_recorded))
 
 # Tests that need --debug-only are marked REQUIRES: asserts because LLVM_DEBUG
 # output only exists in LLVM builds with assertions.

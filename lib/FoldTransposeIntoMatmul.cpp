@@ -91,8 +91,9 @@ bool verifiesAfterFold(linalg::MatmulOp matmul, ArrayRef<Value> newInputs,
 
 struct FoldTransposeIntoMatmulPattern : OpRewritePattern<linalg::MatmulOp> {
   FoldTransposeIntoMatmulPattern(MLIRContext *context,
-                                 Pass::Statistic &numFolded)
-      : OpRewritePattern(context), numFolded(numFolded) {}
+                                 Pass::Statistic &numFolded, bool emitRemarks)
+      : OpRewritePattern(context), numFolded(numFolded),
+        emitRemarks(emitRemarks) {}
 
   LogicalResult matchAndRewrite(linalg::MatmulOp matmul,
                                 PatternRewriter &rewriter) const override {
@@ -136,6 +137,9 @@ struct FoldTransposeIntoMatmulPattern : OpRewritePattern<linalg::MatmulOp> {
     });
     numFolded += foldedOperands;
     LLVM_DEBUG(llvm::dbgs() << "  folded " << foldedOperands << " operand(s)\n");
+    if (emitRemarks)
+      matmul->emitRemark() << "folded " << foldedOperands
+                           << " transposed operand(s)";
 
     // A transpose with other users stays for them.
     for (Operation *transpose : transposes)
@@ -146,14 +150,17 @@ struct FoldTransposeIntoMatmulPattern : OpRewritePattern<linalg::MatmulOp> {
 
 private:
   Pass::Statistic &numFolded;
+  bool emitRemarks;
 };
 
 struct FoldTransposeIntoMatmulPass
     : impl::FoldTransposeIntoMatmulBase<FoldTransposeIntoMatmulPass> {
+  using FoldTransposeIntoMatmulBase::FoldTransposeIntoMatmulBase;
+
   void runOnOperation() override {
     RewritePatternSet patterns(&getContext());
-    patterns.add<FoldTransposeIntoMatmulPattern>(&getContext(),
-                                                 numTransposesFolded);
+    patterns.add<FoldTransposeIntoMatmulPattern>(
+        &getContext(), numTransposesFolded, emitRemarks);
 
     // Same policy as the fusion pass: apply this pattern and nothing else.
     GreedyRewriteConfig config;

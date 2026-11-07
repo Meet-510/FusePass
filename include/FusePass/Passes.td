@@ -13,6 +13,11 @@ def ElementwiseFusion : Pass<"fusepass-elementwise-fusion", "func::FuncOp"> {
     "math::MathDialect",
     "tensor::TensorDialect"
   ];
+  let options = [
+    Option<"emitRemarks", "emit-remarks", "bool", /*default=*/"false",
+           "Report each fusion decision as a remark. Unlike --debug-only and "
+           "pass statistics, this also works on release builds of LLVM">
+  ];
   let statistics = [
     Statistic<"numFusedGroups", "fused-groups",
               "Number of groups rewritten into one linalg.generic">,
@@ -27,6 +32,11 @@ def FoldTransposeIntoMatmul
     : Pass<"fusepass-fold-transpose-matmul", "func::FuncOp"> {
   let summary = "Fold rank 2 transposes into the indexing maps of linalg.matmul";
   let dependentDialects = ["linalg::LinalgDialect"];
+  let options = [
+    Option<"emitRemarks", "emit-remarks", "bool", /*default=*/"false",
+           "Report each fold as a remark. Unlike --debug-only and pass "
+           "statistics, this also works on release builds of LLVM">
+  ];
   let statistics = [
     Statistic<"numTransposesFolded", "transposes-folded",
               "Number of matmul operands that now read past a transpose">
