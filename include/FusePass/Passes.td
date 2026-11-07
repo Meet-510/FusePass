@@ -13,6 +13,14 @@ def ElementwiseFusion : Pass<"fusepass-elementwise-fusion", "func::FuncOp"> {
     "math::MathDialect",
     "tensor::TensorDialect"
   ];
+  let statistics = [
+    Statistic<"numFusedGroups", "fused-groups",
+              "Number of groups rewritten into one linalg.generic">,
+    Statistic<"numFusedOps", "fused-ops",
+              "Number of elementwise ops moved into a linalg.generic">,
+    Statistic<"numRejectedCandidates", "rejected-candidates",
+              "Number of elementwise tensor ops left unfused at a group root">
+  ];
 }
 
 #endif // FUSEPASS_PASSES_TD
